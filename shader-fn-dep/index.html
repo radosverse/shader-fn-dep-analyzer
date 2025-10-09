@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Function Dependency Analyzer - Browser Version</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #569cd6;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .input-section {
+            background: #252525;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #3a3a3a;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            color: #9cdcfe;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            background: #1e1e1e;
+            border: 1px solid #3a3a3a;
+            color: #d4d4d4;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #569cd6;
+        }
+
+        .folder-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .folder-input-group input[type="text"] {
+            flex: 1;
+        }
+
+        #folderPicker {
+            padding: 10px 15px;
+            background: #3a3a3a;
+            border: 1px solid #4a4a4a;
+            color: #d4d4d4;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button {
+            background: #569cd6;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #4b8bca;
+        }
+
+        button:disabled {
+            background: #3a3a3a;
+            cursor: not-allowed;
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-section.active {
+            display: block;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #3a3a3a;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background: transparent;
+            color: #969696;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 4px 4px 0 0;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            background: #252525;
+            color: #d4d4d4;
+            border-bottom: 2px solid #569cd6;
+            margin-bottom: -2px;
+        }
+
+        .tab-content {
+            display: none;
+            background: #252525;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #3a3a3a;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .tree-output {
+            white-space: pre;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .code-output {
+            white-space: pre-wrap;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        /* Syntax highlighting for code tab */
+        .hljs-keyword { color: #c586c0; }
+        .hljs-type { color: #4ec9b0; }
+        .hljs-function { color: #dcdcaa; }
+        .hljs-string { color: #ce9178; }
+        .hljs-comment { color: #6a9955; font-style: italic; }
+        .hljs-number { color: #b5cea8; }
+        .hljs-preprocessor { color: #c586c0; }
+        .hljs-operator { color: #d4d4d4; }
+        .hljs-punctuation { color: #d4d4d4; }
+
+        .stats {
+            background: #1e1e1e;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .stat-item {
+            display: inline-block;
+            margin-right: 20px;
+            color: #9cdcfe;
+        }
+
+        .error {
+            background: #5a1e1e;
+            color: #f48771;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border: 1px solid #8b3a3a;
+        }
+
+        .loading {
+            color: #569cd6;
+            padding: 20px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        .progress-info {
+            color: #969696;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #3a3a3a;
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4a4a4a;
+        }
+
+        .info-box {
+            background: #1e3a5f;
+            color: #9cdcfe;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border: 1px solid #2d5a8f;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Function Dependency Analyzer - Browser Version</h1>
+
+        <div class="info-box">
+            <strong>Browser Version:</strong> This version runs entirely in your browser using the File API.
+            Select a folder from your local drive, then enter a function name to analyze its dependencies.
+        </div>
+
+        <div class="input-section">
+            <div class="input-group">
+                <label for="folderPath">Select Folder:</label>
+                <div class="folder-input-group">
+                    <input type="text" id="folderPath" placeholder="No folder selected" readonly>
+                    <button id="folderPicker">Select Folder</button>
+                </div>
+            </div>
+            <div class="input-group">
+                <label for="functionName">Function Name:</label>
+                <input type="text" id="functionName" placeholder="e.g., calculateTotal">
+            </div>
+            <button id="analyzeBtn" onclick="analyzeFunction()">Analyze Function</button>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div>Scanning files and building dependency tree...</div>
+            <div class="progress-info" id="progressInfo"></div>
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="results" class="results-section">
+            <div id="stats" class="stats"></div>
+
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('tree', event)">Dependency Tree</button>
+                <button class="tab" onclick="switchTab('code', event)">Function Definitions</button>
+            </div>
+
+            <div id="tree-tab" class="tab-content active">
+                <div id="tree-output" class="tree-output"></div>
+            </div>
+
+            <div id="code-tab" class="tab-content">
+                <div id="code-output" class="code-output"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="fndep-browser.js"></script>
+</body>
+</html>
