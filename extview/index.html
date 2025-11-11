@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLSL Extension Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+        }
+        h1 {
+            color: #4ec9b0;
+            margin-bottom: 20px;
+        }
+        .file-picker-section {
+            background: #252526;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .file-picker-section label {
+            display: block;
+            color: #9cdcfe;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .file-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        #fileInput {
+            display: none;
+        }
+        .file-button {
+            background: #569cd6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .file-button:hover {
+            background: #4b8bca;
+        }
+        .file-name {
+            color: #858585;
+            font-size: 14px;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+        .extensions-list {
+            background: #252526;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 10px;
+            height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+        .extension-item {
+            padding: 10px;
+            margin-bottom: 5px;
+            background: #2d2d30;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: background 0.2s;
+            border-left: 3px solid transparent;
+        }
+        .extension-item:hover {
+            background: #37373d;
+        }
+        .extension-item.active {
+            background: #094771;
+            border-left-color: #4ec9b0;
+        }
+        .extension-name {
+            font-weight: 600;
+            color: #4ec9b0;
+            margin-bottom: 3px;
+        }
+        .extension-name.vendor-khr {
+            color: #4ec9b0;
+        }
+        .extension-name.vendor-ext {
+            color: #569cd6;
+        }
+        .extension-name.vendor-nv {
+            color: #b5cea8;
+        }
+        .extension-name.vendor-arb {
+            color: #dcdcaa;
+        }
+        .extension-name.vendor-amd {
+            color: #d16969;
+        }
+        .usage-count {
+            font-size: 12px;
+            color: #858585;
+        }
+        .details-panel {
+            background: #252526;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 20px;
+            height: calc(100vh - 200px);
+            overflow-y: auto;
+        }
+        .details-panel h2 {
+            color: #4ec9b0;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3e3e42;
+        }
+        .files-section {
+            margin-top: 20px;
+        }
+        .files-section h3 {
+            color: #569cd6;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .file-item {
+            background: #2d2d30;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 3px;
+            border-left: 3px solid #569cd6;
+        }
+        .file-path {
+            color: #ce9178;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        .feature-section {
+            margin-top: 8px;
+        }
+        .feature-label {
+            color: #c586c0;
+            font-weight: 600;
+            font-size: 12px;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        .feature-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .feature-item {
+            background: #3e3e42;
+            color: #dcdcaa;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-family: 'Consolas', monospace;
+        }
+        .empty-state {
+            color: #858585;
+            text-align: center;
+            padding: 40px;
+        }
+        .hidden {
+            display: none;
+        }
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #424242;
+            border-radius: 5px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #4e4e4e;
+        }
+    </style>
+</head>
+<body>
+    <h1>GLSL Extension Viewer</h1>
+
+    <div class="file-picker-section">
+        <label>Select Shader Folder:</label>
+        <div class="file-input-group">
+            <button class="file-button" onclick="document.getElementById('fileInput').click()">
+                Select Folder
+            </button>
+            <span class="file-name" id="fileName">No folder selected</span>
+        </div>
+        <input type="file" id="fileInput" webkitdirectory directory multiple onchange="onFolderSelected(event)">
+        <button class="file-button" id="scanBtn" style="display:none; margin-top:10px;" onclick="startScan()">
+            Scan Shaders
+        </button>
+        <div id="progress" style="margin-top:10px; color:#4ec9b0; font-size:14px;"></div>
+    </div>
+
+    <div class="container hidden" id="mainContainer">
+        <div class="extensions-list" id="extensionsList"></div>
+        <div class="details-panel" id="detailsPanel">
+            <div class="empty-state">Select an extension to view details</div>
+        </div>
+    </div>
+
+    <script src="extension_scanner_browser.js"></script>
+    <script src="viewer.js"></script>
+</body>
+</html>
